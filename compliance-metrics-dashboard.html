@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Compliance Metrics & KPIs | GRC Engineering</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#141414;color:#e5e5e5;min-height:100vh}
+.header{background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);padding:24px 32px;border-bottom:3px solid #e50914}
+.header h1{font-size:28px;font-weight:700;color:#fff}
+.header p{color:#999;font-size:14px;margin-top:4px}
+.content{padding:24px 32px}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:24px}
+.kpi{background:#1e1e1e;border-radius:10px;padding:20px;position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.kpi.green::before{background:#2ecc71}
+.kpi.yellow::before{background:#f39c12}
+.kpi.red::before{background:#e74c3c}
+.kpi.blue::before{background:#3498db}
+.kpi-value{font-size:40px;font-weight:700;color:#fff}
+.kpi-label{font-size:12px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+.kpi-detail{font-size:12px;color:#666;margin-top:8px}
+.kpi-trend{position:absolute;top:20px;right:20px;font-size:20px;font-weight:700}
+.trend-up{color:#2ecc71}
+.trend-down{color:#e74c3c}
+.trend-flat{color:#f39c12}
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px}
+.card{background:#1e1e1e;border-radius:10px;padding:24px}
+.card h3{font-size:14px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:16px}
+.sparkline{display:flex;align-items:flex-end;gap:3px;height:60px}
+.spark-bar{flex:1;border-radius:2px 2px 0 0;transition:height .4s;min-width:8px}
+.spark-bar:hover{opacity:.8}
+.donut-container{display:flex;align-items:center;justify-content:center;gap:24px}
+.donut{position:relative;width:160px;height:160px}
+.donut svg{transform:rotate(-90deg)}
+.donut-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center}
+.donut-pct{font-size:32px;font-weight:700;color:#fff}
+.donut-label{font-size:11px;color:#888}
+.legend{display:flex;flex-direction:column;gap:8px}
+.legend-item{display:flex;align-items:center;gap:8px;font-size:13px}
+.legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.timeline{display:flex;flex-direction:column;gap:12px}
+.tl-item{display:flex;gap:16px;align-items:flex-start}
+.tl-dot{width:12px;height:12px;border-radius:50%;margin-top:4px;flex-shrink:0}
+.tl-content{flex:1}
+.tl-title{font-size:13px;font-weight:600;color:#e5e5e5}
+.tl-meta{font-size:11px;color:#666;margin-top:2px}
+.metric-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #2a2a2a}
+.metric-row:last-child{border-bottom:none}
+.metric-name{font-size:13px;color:#ccc}
+.metric-bar-wrap{width:200px;display:flex;align-items:center;gap:8px}
+.metric-bar{flex:1;height:8px;background:#2a2a2a;border-radius:4px;overflow:hidden}
+.metric-fill{height:100%;border-radius:4px;transition:width .6s}
+.metric-val{font-size:13px;font-weight:600;min-width:40px;text-align:right}
+.sla-table{width:100%;border-collapse:collapse}
+.sla-table th{background:#252525;padding:10px 14px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#888}
+.sla-table td{padding:10px 14px;border-bottom:1px solid #2a2a2a;font-size:13px}
+@media(max-width:900px){.charts-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="header">
+<h1>Compliance Metrics & KPIs</h1>
+<p>Enterprise GRC — Real-Time Compliance Posture & Performance Tracking</p>
+</div>
+<div class="content">
+<div class="kpi-grid" id="kpiGrid"></div>
+<div class="charts-grid">
+<div class="card">
+<h3>Control Compliance by Framework</h3>
+<div id="frameworkMetrics"></div>
+</div>
+<div class="card">
+<h3>Overall Compliance Posture</h3>
+<div class="donut-container">
+<div class="donut">
+<svg width="160" height="160" viewBox="0 0 160 160">
+<circle cx="80" cy="80" r="70" fill="none" stroke="#2a2a2a" stroke-width="14"/>
+<circle id="donutPass" cx="80" cy="80" r="70" fill="none" stroke="#2ecc71" stroke-width="14" stroke-dasharray="0 440" stroke-linecap="round"/>
+<circle id="donutPartial" cx="80" cy="80" r="70" fill="none" stroke="#f39c12" stroke-width="14" stroke-dasharray="0 440" stroke-linecap="round"/>
+</svg>
+<div class="donut-center"><div class="donut-pct" id="donutPct">0%</div><div class="donut-label">Compliant</div></div>
+</div>
+<div class="legend" id="donutLegend"></div>
+</div>
+</div>
+</div>
+<div class="charts-grid">
+<div class="card">
+<h3>Monthly Audit Finding Trend</h3>
+<div class="sparkline" id="findingsChart"></div>
+<div style="display:flex;justify-content:space-between;margin-top:8px;font-size:10px;color:#666"><span>Jul</span><span>Aug</span><span>Sep</span><span>Oct</span><span>Nov</span><span>Dec</span><span>Jan</span><span>Feb</span><span>Mar</span></div>
+</div>
+<div class="card">
+<h3>SLA Performance</h3>
+<table class="sla-table">
+<thead><tr><th>SLA Metric</th><th>Target</th><th>Actual</th><th>Status</th></tr></thead>
+<tbody id="slaTable"></tbody>
+</table>
+</div>
+</div>
+<div class="charts-grid">
+<div class="card">
+<h3>Vulnerability Remediation</h3>
+<div id="vulnMetrics"></div>
+</div>
+<div class="card">
+<h3>Recent Compliance Activity</h3>
+<div class="timeline" id="timeline"></div>
+</div>
+</div>
+</div>
+<script>
+const data={
+  kpis:[
+    {label:"Control Coverage",value:"87%",detail:"174 of 200 controls tested",trend:"up",color:"green"},
+    {label:"Open Findings",value:"12",detail:"↓ from 19 last month",trend:"up",color:"yellow"},
+    {label:"Mean Time to Remediate",value:"14d",detail:"Target: 30 days",trend:"up",color:"green"},
+    {label:"Policy Compliance",value:"94%",detail:"32 of 34 policies current",trend:"flat",color:"green"},
+    {label:"Vendor Assessments Due",value:"3",detail:"Next 30 days",trend:"flat",color:"blue"},
+    {label:"DR/BC Test Score",value:"92%",detail:"Last test: Jan 2026",trend:"up",color:"green"},
+  ],
+  frameworks:[
+    {name:"SOX",compliant:28,partial:3,total:34},
+    {name:"PCI-DSS",compliant:42,partial:5,total:50},
+    {name:"ISO 27001",compliant:85,partial:10,total:105},
+    {name:"GDPR",compliant:18,partial:4,total:25},
+    {name:"NIST 800-53",compliant:130,partial:22,total:170},
+  ],
+  findings:[8,12,15,11,9,14,10,7,6],
+  sla:[
+    {metric:"Critical vuln remediation",target:"72 hrs",actual:"48 hrs",met:true},
+    {metric:"High vuln remediation",target:"30 days",actual:"14 days",met:true},
+    {metric:"Audit finding closure",target:"90 days",actual:"67 days",met:true},
+    {metric:"Access review completion",target:"Quarterly",actual:"On track",met:true},
+    {metric:"DR/BC test execution",target:"Annual",actual:"Completed",met:true},
+    {metric:"Vendor assessment cycle",target:"Annual",actual:"3 overdue",met:false},
+  ],
+  vulns:[
+    {sev:"Critical",open:0,remediated:4,mttr:"48 hrs"},
+    {sev:"High",open:3,remediated:18,mttr:"14 days"},
+    {sev:"Medium",open:12,remediated:45,mttr:"28 days"},
+    {sev:"Low",open:8,remediated:62,mttr:"52 days"},
+  ],
+  timeline:[
+    {date:"Mar 15",title:"PCI-DSS quarterly scan completed",status:"pass"},
+    {date:"Mar 12",title:"40+ detection rules peer-reviewed",status:"pass"},
+    {date:"Mar 08",title:"Wolf & Company audit evidence submitted",status:"info"},
+    {date:"Mar 05",title:"Risk register updated — 3 risks mitigated",status:"pass"},
+    {date:"Mar 01",title:"NIST COSAIS meeting — SP 800-53 overlays reviewed",status:"info"},
+    {date:"Feb 25",title:"SOX control testing cycle completed",status:"pass"},
+    {date:"Feb 18",title:"Vendor risk assessment — 2 findings identified",status:"warn"},
+    {date:"Feb 10",title:"CMMC readiness assessment — Level 2 gap analysis",status:"warn"},
+  ]
+};
+
+// KPIs
+document.getElementById('kpiGrid').innerHTML=data.kpis.map(k=>`
+  <div class="kpi ${k.color}">
+    <div class="kpi-value">${k.value}</div>
+    <div class="kpi-label">${k.label}</div>
+    <div class="kpi-detail">${k.detail}</div>
+    <div class="kpi-trend ${k.trend==='up'?'trend-up':'trend-flat'}">${k.trend==='up'?'↑':k.trend==='down'?'↓':'→'}</div>
+  </div>
+`).join('');
+
+// Framework metrics
+document.getElementById('frameworkMetrics').innerHTML=data.frameworks.map(f=>{
+  const pct=Math.round((f.compliant/f.total)*100);
+  const color=pct>85?'#2ecc71':pct>70?'#f39c12':'#e74c3c';
+  return `<div class="metric-row">
+    <span class="metric-name">${f.name}</span>
+    <div class="metric-bar-wrap">
+      <div class="metric-bar"><div class="metric-fill" style="width:${pct}%;background:${color}"></div></div>
+      <span class="metric-val" style="color:${color}">${pct}%</span>
+    </div>
+  </div>`;
+}).join('');
+
+// Donut
+const totalControls=data.frameworks.reduce((s,f)=>s+f.total,0);
+const totalCompliant=data.frameworks.reduce((s,f)=>s+f.compliant,0);
+const totalPartial=data.frameworks.reduce((s,f)=>s+f.partial,0);
+const pctCompliant=Math.round((totalCompliant/totalControls)*100);
+const pctPartial=Math.round((totalPartial/totalControls)*100);
+const circ=2*Math.PI*70;
+document.getElementById('donutPass').setAttribute('stroke-dasharray',`${(pctCompliant/100)*circ} ${circ}`);
+document.getElementById('donutPartial').setAttribute('stroke-dasharray',`${(pctPartial/100)*circ} ${circ}`);
+document.getElementById('donutPartial').setAttribute('stroke-dashoffset',`${-(pctCompliant/100)*circ}`);
+document.getElementById('donutPct').textContent=pctCompliant+'%';
+document.getElementById('donutLegend').innerHTML=`
+  <div class="legend-item"><div class="legend-dot" style="background:#2ecc71"></div>${totalCompliant} Compliant (${pctCompliant}%)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#f39c12"></div>${totalPartial} Partial (${pctPartial}%)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#2a2a2a"></div>${totalControls-totalCompliant-totalPartial} Gap (${100-pctCompliant-pctPartial}%)</div>
+`;
+
+// Findings chart
+const maxF=Math.max(...data.findings);
+document.getElementById('findingsChart').innerHTML=data.findings.map((v,i)=>{
+  const h=Math.round((v/maxF)*100);
+  const color=v>12?'#e74c3c':v>8?'#f39c12':'#2ecc71';
+  return `<div class="spark-bar" style="height:${h}%;background:${color}" title="${v} findings"></div>`;
+}).join('');
+
+// SLA
+document.getElementById('slaTable').innerHTML=data.sla.map(s=>`
+  <tr><td>${s.metric}</td><td>${s.target}</td><td>${s.actual}</td>
+  <td><span style="color:${s.met?'#2ecc71':'#e74c3c'};font-weight:600">${s.met?'✓ Met':'✗ Miss'}</span></td></tr>
+`).join('');
+
+// Vulns
+document.getElementById('vulnMetrics').innerHTML=data.vulns.map(v=>{
+  const total=v.open+v.remediated;
+  const pct=Math.round((v.remediated/total)*100);
+  const colors={Critical:'#e74c3c',High:'#e67e22',Medium:'#f39c12',Low:'#27ae60'};
+  return `<div class="metric-row">
+    <div><span style="color:${colors[v.sev]};font-weight:600">${v.sev}</span><br><span style="font-size:11px;color:#666">${v.open} open · MTTR: ${v.mttr}</span></div>
+    <div class="metric-bar-wrap">
+      <div class="metric-bar"><div class="metric-fill" style="width:${pct}%;background:${colors[v.sev]}"></div></div>
+      <span class="metric-val" style="color:${colors[v.sev]}">${pct}%</span>
+    </div>
+  </div>`;
+}).join('');
+
+// Timeline
+const tlColors={pass:'#2ecc71',warn:'#f39c12',info:'#3498db'};
+document.getElementById('timeline').innerHTML=data.timeline.map(t=>`
+  <div class="tl-item">
+    <div class="tl-dot" style="background:${tlColors[t.status]}"></div>
+    <div class="tl-content"><div class="tl-title">${t.title}</div><div class="tl-meta">${t.date}, 2026</div></div>
+  </div>
+`).join('');
+</script>
+</body>
+</html>
